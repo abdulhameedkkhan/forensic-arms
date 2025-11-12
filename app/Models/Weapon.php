@@ -15,6 +15,11 @@ class Weapon extends Model
         'weapon_no',
         'arm_dealer_id',
         'fsl_diary_no',
+        'license_no',
+        'weapon_type_id',
+        'bore_id',
+        'make_id',
+        'license_issuer_id',
         'attachments',
     ];
 
@@ -28,5 +33,37 @@ class Weapon extends Model
     public function armDealer(): BelongsTo
     {
         return $this->belongsTo(ArmDealer::class, 'arm_dealer_id');
+    }
+
+    /**
+     * Get the weapon type.
+     */
+    public function weaponType(): BelongsTo
+    {
+        return $this->belongsTo(WeaponType::class, 'weapon_type_id');
+    }
+
+    /**
+     * Get the bore.
+     */
+    public function bore(): BelongsTo
+    {
+        return $this->belongsTo(Bore::class, 'bore_id');
+    }
+
+    /**
+     * Get the make.
+     */
+    public function make(): BelongsTo
+    {
+        return $this->belongsTo(Make::class, 'make_id');
+    }
+
+    /**
+     * Get the license issuer.
+     */
+    public function licenseIssuer(): BelongsTo
+    {
+        return $this->belongsTo(LicenseIssuer::class, 'license_issuer_id');
     }
 }

@@ -5,6 +5,10 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\WeaponResource\Pages;
 use App\Models\Weapon;
 use App\Models\ArmDealer;
+use App\Models\WeaponType;
+use App\Models\Bore;
+use App\Models\Make;
+use App\Models\LicenseIssuer;
 use BackedEnum;
 use Filament\Actions;
 use Filament\Forms\Components;
@@ -62,8 +66,88 @@ class WeaponResource extends Resource
 
                     Components\TextInput::make('fsl_diary_no')
                         ->label('FSL Diary Number')
-                        ->required() // Make this field mandatory
+                        ->required()
+                        ->unique(ignoreRecord: true)
                         ->maxLength(255)
+                        ->placeholder('12345/25')
+                        ->helperText('Format: Number/Year (e.g., 12345/25)')
+                        ->regex('/^\d+\/\d{2}$/')
+                        ->validationMessages([
+                            'regex' => 'FSL Diary Number must be in format: Number/Year (e.g., 12345/25)',
+                        ])
+                        ->columnSpanFull(),
+
+                    Components\TextInput::make('license_no')
+                        ->label('License No')
+                        ->maxLength(255)
+                        ->columnSpanFull(),
+
+                    Components\Select::make('weapon_type_id')
+                        ->label('Weapon Type')
+                        ->relationship('weaponType', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->createOptionForm([
+                            Components\TextInput::make('name')
+                                ->label('Weapon Type')
+                                ->required()
+                                ->unique(WeaponType::class, 'name')
+                                ->maxLength(255),
+                        ])
+                        ->createOptionUsing(function (array $data): int {
+                            return WeaponType::create($data)->getKey();
+                        })
+                        ->columnSpanFull(),
+
+                    Components\Select::make('bore_id')
+                        ->label('Bore')
+                        ->relationship('bore', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->createOptionForm([
+                            Components\TextInput::make('name')
+                                ->label('Bore')
+                                ->required()
+                                ->unique(Bore::class, 'name')
+                                ->maxLength(255),
+                        ])
+                        ->createOptionUsing(function (array $data): int {
+                            return Bore::create($data)->getKey();
+                        })
+                        ->columnSpanFull(),
+
+                    Components\Select::make('make_id')
+                        ->label('Make')
+                        ->relationship('make', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->createOptionForm([
+                            Components\TextInput::make('name')
+                                ->label('Make')
+                                ->required()
+                                ->unique(Make::class, 'name')
+                                ->maxLength(255),
+                        ])
+                        ->createOptionUsing(function (array $data): int {
+                            return Make::create($data)->getKey();
+                        })
+                        ->columnSpanFull(),
+
+                    Components\Select::make('license_issuer_id')
+                        ->label('License Issued by')
+                        ->relationship('licenseIssuer', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->createOptionForm([
+                            Components\TextInput::make('name')
+                                ->label('License Issuer')
+                                ->required()
+                                ->unique(LicenseIssuer::class, 'name')
+                                ->maxLength(255),
+                        ])
+                        ->createOptionUsing(function (array $data): int {
+                            return LicenseIssuer::create($data)->getKey();
+                        })
                         ->columnSpanFull(),
 
                     Components\FileUpload::make('attachments')
@@ -112,6 +196,36 @@ class WeaponResource extends Resource
 
                 Tables\Columns\TextColumn::make('fsl_diary_no')
                     ->label('FSL Diary No')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('license_no')
+                    ->label('License No')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('weaponType.name')
+                    ->label('Weapon Type')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('bore.name')
+                    ->label('Bore')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('make.name')
+                    ->label('Make')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('licenseIssuer.name')
+                    ->label('License Issued by')
                     ->searchable()
                     ->sortable()
                     ->toggleable(),
