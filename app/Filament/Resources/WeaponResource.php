@@ -43,10 +43,9 @@ class WeaponResource extends Resource
                     Components\TextInput::make('cnic')
                         ->label('CNIC')
                         ->required()
-                        ->unique(ignoreRecord: true)
-                        ->maxLength(255)
                         ->placeholder('420003566955')
-                        ->helperText('Enter CNIC in format: XXXXX-XXXXXXX-X')
+                        ->helperText('Multiple CNICs allowed. Enter CNICs separated by comma (e.g., 420003566955, 1234567890123)')
+                        ->maxLength(255)
                         ->columnSpanFull(),
 
                     Components\TextInput::make('weapon_no')
@@ -70,10 +69,13 @@ class WeaponResource extends Resource
                         ->unique(ignoreRecord: true)
                         ->maxLength(255)
                         ->placeholder('12345/25')
-                        ->helperText('Format: Number/Year (e.g., 12345/25)')
+                        ->helperText('Format: Number/Year (e.g., 12345/25). This field must be unique.')
                         ->regex('/^\d+\/\d{2}$/')
+                        ->live(onBlur: true)
                         ->validationMessages([
-                            'regex' => 'FSL Diary Number must be in format: Number/Year (e.g., 12345/25)',
+                            'regex' => 'FSL Diary Number format: Number/Year hona chahiye (masalan: 12345/25)',
+                            'unique' => 'Ye FSL Diary Number (1234/25) pehle se maujood hai! Kripya koi doosra unique number dalein.',
+                            'required' => 'FSL Diary Number zaroori hai.',
                         ])
                         ->columnSpanFull(),
 

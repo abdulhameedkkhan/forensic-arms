@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'BLMS-Forensic'),
+    'name' => env('APP_NAME', 'BSLW Forensic'),
 
     /*
     |--------------------------------------------------------------------------

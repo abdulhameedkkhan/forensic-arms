@@ -28,7 +28,7 @@ class StatsOverview extends BaseWidget
                 ->chart([1, 2, 3, 4, 5, 6, 7]),
 
             Stat::make('Total Weapons', Weapon::count())
-                ->description('Weapons tracked in BLMS')
+                ->description('Weapons tracked in BSLW')
                 ->descriptionIcon('heroicon-m-rocket-launch')
                 ->color('info')
                 ->chart([3, 4, 6, 5, 6, 8, 9]),

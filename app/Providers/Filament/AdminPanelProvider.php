@@ -27,7 +27,8 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->brandName('BLMS-Forensic')
+            ->brandName('BSLW Forensic')
+            ->favicon(asset('images/gun-icon.svg'))
             ->colors([
                 'primary' => Color::Amber,
             ])

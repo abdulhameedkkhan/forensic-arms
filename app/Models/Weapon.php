@@ -28,6 +28,22 @@ class Weapon extends Model
     ];
 
     /**
+     * Set the CNIC attribute - clean and save as normal string
+     */
+    public function setCnicAttribute($value)
+    {
+        if (is_array($value)) {
+            // Convert array to comma-separated string
+            $value = implode(', ', array_filter($value, fn($v) => !empty($v)));
+        } elseif (is_string($value)) {
+            // Clean the string - remove extra quotes and whitespace
+            $value = trim($value, '"\'');
+        }
+        
+        $this->attributes['cnic'] = $value;
+    }
+
+    /**
      * Get the arm dealer that owns the weapon.
      */
     public function armDealer(): BelongsTo

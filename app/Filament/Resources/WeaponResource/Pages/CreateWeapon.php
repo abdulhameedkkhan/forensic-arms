@@ -83,7 +83,7 @@ class CreateWeapon extends CreateRecord
     protected function getWeaponFormSection(): SchemaComponents\Group
     {
         return SchemaComponents\Group::make([
-                ...WeaponResource::baseFormSchema(),
+                $this->getWeaponFormSchema(),
             ])
             // Always render the form but control visibility through CSS
             ->visible(fn () => true)
@@ -91,6 +91,152 @@ class CreateWeapon extends CreateRecord
                 'style' => $this->showCreateForm ? '' : 'display: none;'
             ])
             ->columnSpan(1);
+    }
+
+    protected function getWeaponFormSchema(): SchemaComponents\Section
+    {
+        return SchemaComponents\Section::make('Weapon Information')
+            ->schema([
+                Components\TextInput::make('cnic')
+                    ->label('CNIC')
+                    ->required()
+                    ->placeholder('420003566955')
+                    ->helperText('Multiple CNICs allowed. Enter CNICs separated by comma (e.g., 420003566955, 1234567890123)')
+                    ->maxLength(255)
+                    ->disabled(function () {
+                        return $this->showCreateForm && 
+                               !empty($this->prefillData) && 
+                               isset($this->prefillData['cnic']);
+                    })
+                    ->columnSpanFull(),
+
+                Components\TextInput::make('weapon_no')
+                    ->label('Weapon Number')
+                    ->required()
+                    ->maxLength(255)
+                    ->disabled(function () {
+                        return $this->showCreateForm && 
+                               !empty($this->prefillData) && 
+                               isset($this->prefillData['weapon_no']);
+                    })
+                    ->columnSpanFull(),
+
+                Components\Select::make('arm_dealer_id')
+                    ->label('Arm Dealer')
+                    ->relationship('armDealer', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->getOptionLabelFromRecordUsing(fn (\App\Models\ArmDealer $record): string => "{$record->name} - {$record->shop_name}")
+                    ->columnSpanFull(),
+
+                Components\TextInput::make('fsl_diary_no')
+                    ->label('FSL Diary Number')
+                    ->required()
+                    ->unique(ignoreRecord: true)
+                    ->maxLength(255)
+                    ->placeholder('12345/25')
+                    ->helperText('Format: Number/Year (e.g., 12345/25). Ye field unique honi chahiye.')
+                    ->regex('/^\d+\/\d{2}$/')
+                    ->live(onBlur: true)
+                    ->disabled(function () {
+                        return $this->showCreateForm && 
+                               !empty($this->prefillData) && 
+                               isset($this->prefillData['fsl_diary_no']);
+                    })
+                    ->validationMessages([
+                        'regex' => 'FSL Diary Number format: Number/Year hona chahiye (masalan: 12345/25)',
+                        'unique' => 'Ye FSL Diary Number (1234/25) pehle se maujood hai! Kripya koi doosra unique number dalein.',
+                        'required' => 'FSL Diary Number zaroori hai.',
+                    ])
+                    ->columnSpanFull(),
+
+                Components\TextInput::make('license_no')
+                    ->label('License No')
+                    ->maxLength(255)
+                    ->columnSpanFull(),
+
+                Components\Select::make('weapon_type_id')
+                    ->label('Weapon Type')
+                    ->relationship('weaponType', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->createOptionForm([
+                        Components\TextInput::make('name')
+                            ->label('Weapon Type')
+                            ->required()
+                            ->unique(\App\Models\WeaponType::class, 'name')
+                            ->maxLength(255),
+                    ])
+                    ->createOptionUsing(function (array $data): int {
+                        return \App\Models\WeaponType::create($data)->getKey();
+                    })
+                    ->columnSpanFull(),
+
+                Components\Select::make('bore_id')
+                    ->label('Bore')
+                    ->relationship('bore', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->createOptionForm([
+                        Components\TextInput::make('name')
+                            ->label('Bore')
+                            ->required()
+                            ->unique(\App\Models\Bore::class, 'name')
+                            ->maxLength(255),
+                    ])
+                    ->createOptionUsing(function (array $data): int {
+                        return \App\Models\Bore::create($data)->getKey();
+                    })
+                    ->columnSpanFull(),
+
+                Components\Select::make('make_id')
+                    ->label('Make')
+                    ->relationship('make', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->createOptionForm([
+                        Components\TextInput::make('name')
+                            ->label('Make')
+                            ->required()
+                            ->unique(\App\Models\Make::class, 'name')
+                            ->maxLength(255),
+                    ])
+                    ->createOptionUsing(function (array $data): int {
+                        return \App\Models\Make::create($data)->getKey();
+                    })
+                    ->columnSpanFull(),
+
+                Components\Select::make('license_issuer_id')
+                    ->label('License Issued by')
+                    ->relationship('licenseIssuer', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->createOptionForm([
+                        Components\TextInput::make('name')
+                            ->label('License Issuer')
+                            ->required()
+                            ->unique(\App\Models\LicenseIssuer::class, 'name')
+                            ->maxLength(255),
+                    ])
+                    ->createOptionUsing(function (array $data): int {
+                        return \App\Models\LicenseIssuer::create($data)->getKey();
+                    })
+                    ->columnSpanFull(),
+
+                Components\FileUpload::make('attachments')
+                    ->label('Attachments')
+                    ->multiple()
+                    ->directory('weapons/attachments')
+                    ->visibility('public')
+                    ->disk('public')
+                    ->acceptedFileTypes(['application/pdf', 'image/*'])
+                    ->maxSize(10240) // 10MB
+                    ->helperText('You can upload multiple files (PDF, Images). Max size: 10MB per file.')
+                    ->columnSpanFull()
+                    ->downloadable()
+                    ->openable(),
+            ]);
     }
 
     protected function getHeaderActions(): array
@@ -119,7 +265,8 @@ class CreateWeapon extends CreateRecord
         $query = Weapon::query();
 
         if (!empty($this->searchCnic)) {
-            $query->where('cnic', $this->searchCnic);
+            // Search in text column (comma-separated values)
+            $query->where('cnic', 'like', '%' . $this->searchCnic . '%');
         }
 
         if (!empty($this->searchWeaponNo)) {
@@ -173,7 +320,7 @@ class CreateWeapon extends CreateRecord
     protected function prefillFormData(): void
     {
         $this->prefillData = array_filter([
-            'cnic' => $this->searchCnic,
+            'cnic' => !empty($this->searchCnic) ? $this->searchCnic : null,
             'weapon_no' => $this->searchWeaponNo,
             'fsl_diary_no' => $this->searchFslDiaryNo,
         ], fn ($value) => filled($value));
@@ -182,6 +329,7 @@ class CreateWeapon extends CreateRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         if ($this->showCreateForm && !empty($this->prefillData)) {
+            // Keep CNIC as string (normal text field)
             $data = array_merge($data, $this->prefillData);
         } else {
             $this->prefillData = [];
@@ -192,6 +340,17 @@ class CreateWeapon extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        // Ensure CNIC is properly formatted as normal string
+        if (isset($data['cnic'])) {
+            if (is_array($data['cnic'])) {
+                // Convert array to comma-separated string
+                $data['cnic'] = implode(', ', array_filter($data['cnic'], fn($v) => !empty($v)));
+            } elseif (is_string($data['cnic'])) {
+                // Clean the string - remove extra quotes and trim
+                $data['cnic'] = trim($data['cnic'], '"\'');
+            }
+        }
+        
         return $data;
     }
 
