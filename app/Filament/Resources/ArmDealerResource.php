@@ -110,6 +110,14 @@ class ArmDealerResource extends Resource
                             ->label('Postal Code')
                             ->maxLength(255),
 
+                        Components\Select::make('range_id')
+                            ->label('Range')
+                            ->relationship('range', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->visible(fn () => auth()->user()?->hasRole('admin') ?? false)
+                            ->helperText('Only admins can assign ranges. Range users will automatically have their range_id set when creating arm dealers.'),
+
                         Components\TextInput::make('latitude')
                             ->label('Latitude')
                             ->numeric()
@@ -198,6 +206,13 @@ class ArmDealerResource extends Resource
                     ->sortable()
                     ->toggleable(),
 
+                Tables\Columns\TextColumn::make('range.name')
+                    ->label('Range')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable()
+                    ->visible(fn () => auth()->user()?->hasRole('admin') ?? false),
+
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -266,6 +281,27 @@ class ArmDealerResource extends Resource
             ]);
     }
 
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+        
+        $user = auth()->user();
+        if ($user) {
+            // If user has range_id, only show arm dealers from their range
+            if ($user->range_id) {
+                // Ensure both are compared as integers to avoid type mismatch
+                $query->where('range_id', (int) $user->range_id);
+            } 
+            // If user has no range_id and is NOT admin, show nothing
+            elseif (!$user->hasRole('admin')) {
+                $query->whereRaw('1 = 0'); // This will return no results
+            }
+            // If user has no range_id and IS admin, show all arm dealers (no filter)
+        }
+        
+        return $query;
+    }
+
     public static function getRelations(): array
     {
         return [
@@ -303,13 +339,69 @@ class ArmDealerResource extends Resource
         return auth()->user()?->can('create arm dealers') ?? false;
     }
 
+    public static function canView($record): bool
+    {
+        $user = auth()->user();
+        if (!$user || !$user->can('view arm dealers')) {
+            return false;
+        }
+        
+        // If user has range_id, can only view arm dealers from their range
+        if ($user->range_id) {
+            // Compare as integers to avoid type mismatch
+            return (int) $record->range_id === (int) $user->range_id;
+        }
+        
+        // If user has no range_id and is NOT admin, cannot view anything
+        if (!$user->hasRole('admin')) {
+            return false;
+        }
+        
+        // Admin users can view all arm dealers
+        return true;
+    }
+
     public static function canEdit($record): bool
     {
-        return auth()->user()?->can('edit arm dealers') ?? false;
+        $user = auth()->user();
+        if (!$user || !$user->can('edit arm dealers')) {
+            return false;
+        }
+        
+        // If user has range_id, can only edit arm dealers from their range
+        if ($user->range_id) {
+            // Compare as integers to avoid type mismatch
+            return (int) $record->range_id === (int) $user->range_id;
+        }
+        
+        // If user has no range_id and is NOT admin, cannot edit anything
+        if (!$user->hasRole('admin')) {
+            return false;
+        }
+        
+        // Admin users can edit all arm dealers
+        return true;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->can('delete arm dealers') ?? false;
+        $user = auth()->user();
+        if (!$user || !$user->can('delete arm dealers')) {
+            return false;
+        }
+        
+        // If user has range_id, can only delete arm dealers from their range
+        if ($user->range_id) {
+            // Compare as integers to avoid type mismatch
+            return (int) $record->range_id === (int) $user->range_id;
+        }
+        
+        // If user has no range_id and is NOT admin, cannot delete anything
+        if (!$user->hasRole('admin')) {
+            return false;
+        }
+        
+        // Admin users can delete all arm dealers
+        return true;
     }
 }

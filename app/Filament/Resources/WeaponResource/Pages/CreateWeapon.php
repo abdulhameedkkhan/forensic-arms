@@ -123,11 +123,28 @@ class CreateWeapon extends CreateRecord
 
                 Components\Select::make('arm_dealer_id')
                     ->label('Arm Dealer')
-                    ->relationship('armDealer', 'name')
+                    ->relationship('armDealer', 'name', function ($query) {
+                        $user = auth()->user();
+                        if ($user && $user->range_id) {
+                            // Filter arm dealers by user's range
+                            return $query->where('range_id', (int) $user->range_id);
+                        } elseif ($user && !$user->hasRole('admin')) {
+                            // Non-admin users without range_id see nothing
+                            return $query->whereRaw('1 = 0');
+                        }
+                        // Admin users see all arm dealers
+                        return $query;
+                    })
                     ->searchable()
                     ->preload()
                     ->required()
                     ->getOptionLabelFromRecordUsing(fn (\App\Models\ArmDealer $record): string => "{$record->name} - {$record->shop_name}")
+                    ->columnSpanFull(),
+
+                Components\TextInput::make('arm_dealer_invoice_no')
+                    ->label('Arm Dealer Invoice#')
+                    ->required()
+                    ->maxLength(255)
                     ->columnSpanFull(),
 
                 Components\TextInput::make('fsl_diary_no')
@@ -153,6 +170,7 @@ class CreateWeapon extends CreateRecord
 
                 Components\TextInput::make('license_no')
                     ->label('License No')
+                    ->required()
                     ->maxLength(255)
                     ->columnSpanFull(),
 
@@ -161,6 +179,7 @@ class CreateWeapon extends CreateRecord
                     ->relationship('weaponType', 'name')
                     ->searchable()
                     ->preload()
+                    ->required()
                     ->createOptionForm([
                         Components\TextInput::make('name')
                             ->label('Weapon Type')
@@ -178,6 +197,7 @@ class CreateWeapon extends CreateRecord
                     ->relationship('bore', 'name')
                     ->searchable()
                     ->preload()
+                    ->required()
                     ->createOptionForm([
                         Components\TextInput::make('name')
                             ->label('Bore')
@@ -195,6 +215,7 @@ class CreateWeapon extends CreateRecord
                     ->relationship('make', 'name')
                     ->searchable()
                     ->preload()
+                    ->required()
                     ->createOptionForm([
                         Components\TextInput::make('name')
                             ->label('Make')
@@ -212,6 +233,7 @@ class CreateWeapon extends CreateRecord
                     ->relationship('licenseIssuer', 'name')
                     ->searchable()
                     ->preload()
+                    ->required()
                     ->createOptionForm([
                         Components\TextInput::make('name')
                             ->label('License Issuer')
@@ -263,6 +285,21 @@ class CreateWeapon extends CreateRecord
         ]);
         
         $query = Weapon::query();
+        
+        // Apply range filtering for search
+        $user = auth()->user();
+        if ($user) {
+            // If user has range_id, only search within their range
+            if ($user->range_id) {
+                // Ensure both are compared as integers to avoid type mismatch
+                $query->where('range_id', (int) $user->range_id);
+            } 
+            // If user has no range_id and is NOT admin, search nothing
+            elseif (!$user->hasRole('admin')) {
+                $query->whereRaw('1 = 0'); // This will return no results
+            }
+            // If user has no range_id and IS admin, search all weapons (no filter)
+        }
 
         if (!empty($this->searchCnic)) {
             // Search in text column (comma-separated values)
@@ -349,6 +386,14 @@ class CreateWeapon extends CreateRecord
                 // Clean the string - remove extra quotes and trim
                 $data['cnic'] = trim($data['cnic'], '"\'');
             }
+        }
+        
+        // Auto-set range_id from logged in user if user has a range
+        // Always set it if user has range_id, even if form data has NULL or empty value
+        $user = auth()->user();
+        if ($user && $user->range_id) {
+            // Ensure range_id is set as integer to match database type
+            $data['range_id'] = (int) $user->range_id;
         }
         
         return $data;

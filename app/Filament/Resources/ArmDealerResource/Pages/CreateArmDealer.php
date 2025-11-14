@@ -50,5 +50,18 @@ class CreateArmDealer extends CreateRecord
                 ->send();
         }
     }
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        // Auto-set range_id from logged in user if user has a range
+        // Always set it if user has range_id, even if form data has NULL or empty value
+        $user = auth()->user();
+        if ($user && $user->range_id) {
+            // Ensure range_id is set as integer to match database type
+            $data['range_id'] = (int) $user->range_id;
+        }
+        
+        return $data;
+    }
 }
 

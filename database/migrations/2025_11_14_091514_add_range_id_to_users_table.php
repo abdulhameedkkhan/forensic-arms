@@ -11,10 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('ranges', function (Blueprint $table) {
-            $table->id();   
-            $table->string('name');     
-            $table->timestamps();   // created_at, updated_at
+        Schema::table('users', function (Blueprint $table) {
+            $table->foreignId('range_id')->nullable()->after('email')->constrained('ranges')->onDelete('set null');
         });
     }
 
@@ -23,6 +21,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('ranges');
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropForeign(['range_id']);
+            $table->dropColumn('range_id');
+        });
     }
 };

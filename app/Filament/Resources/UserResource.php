@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
+use App\Models\Range;
 use BackedEnum;
 use Filament\Actions;
 use Filament\Forms\Components;
@@ -53,6 +54,14 @@ class UserResource extends Resource
                             ->maxLength(255)
                             ->columnSpanFull()
                             ->helperText(fn (string $operation): string => $operation === 'edit' ? 'Leave blank to keep current password' : ''),
+
+                        Components\Select::make('range_id')
+                            ->label('Range')
+                            ->relationship('range', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->columnSpanFull()
+                            ->helperText('Assign a range to this user. Range users will automatically have their range_id saved when creating weapons.'),
                     ]),
 
                 SchemaComponents\Section::make('Roles & Permissions')
@@ -96,6 +105,12 @@ class UserResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->copyable(),
+
+                Tables\Columns\TextColumn::make('range.name')
+                    ->label('Range')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('roles.name')
                     ->badge()

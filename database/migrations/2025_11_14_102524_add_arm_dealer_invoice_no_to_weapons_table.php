@@ -11,10 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('ranges', function (Blueprint $table) {
-            $table->id();   
-            $table->string('name');     
-            $table->timestamps();   // created_at, updated_at
+        Schema::table('weapons', function (Blueprint $table) {
+            $table->string('arm_dealer_invoice_no')->nullable()->after('arm_dealer_id');
         });
     }
 
@@ -23,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('ranges');
+        Schema::table('weapons', function (Blueprint $table) {
+            $table->dropColumn('arm_dealer_invoice_no');
+        });
     }
 };

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ArmDealer extends Model
@@ -26,6 +27,7 @@ class ArmDealer extends Model
         'district',
         'police_station',
         'postal_code',
+        'range_id',
         'status',
         'notes',
     ];
@@ -35,4 +37,12 @@ class ArmDealer extends Model
         'longitude' => 'decimal:8',
         'latitude' => 'decimal:8',
     ];
+
+    /**
+     * Get the range that owns the arm dealer.
+     */
+    public function range(): BelongsTo
+    {
+        return $this->belongsTo(Range::class, 'range_id');
+    }
 }

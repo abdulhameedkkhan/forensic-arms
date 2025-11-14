@@ -14,12 +14,14 @@ class Weapon extends Model
         'cnic',
         'weapon_no',
         'arm_dealer_id',
+        'arm_dealer_invoice_no',
         'fsl_diary_no',
         'license_no',
         'weapon_type_id',
         'bore_id',
         'make_id',
         'license_issuer_id',
+        'range_id',
         'attachments',
     ];
 
@@ -81,5 +83,13 @@ class Weapon extends Model
     public function licenseIssuer(): BelongsTo
     {
         return $this->belongsTo(LicenseIssuer::class, 'license_issuer_id');
+    }
+
+    /**
+     * Get the range.
+     */
+    public function range(): BelongsTo
+    {
+        return $this->belongsTo(Range::class, 'range_id');
     }
 }

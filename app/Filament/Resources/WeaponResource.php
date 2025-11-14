@@ -56,11 +56,28 @@ class WeaponResource extends Resource
 
                     Components\Select::make('arm_dealer_id')
                         ->label('Arm Dealer')
-                        ->relationship('armDealer', 'name')
+                        ->relationship('armDealer', 'name', function ($query) {
+                            $user = auth()->user();
+                            if ($user && $user->range_id) {
+                                // Filter arm dealers by user's range
+                                return $query->where('range_id', (int) $user->range_id);
+                            } elseif ($user && !$user->hasRole('admin')) {
+                                // Non-admin users without range_id see nothing
+                                return $query->whereRaw('1 = 0');
+                            }
+                            // Admin users see all arm dealers
+                            return $query;
+                        })
                         ->searchable()
                         ->preload()
                         ->required()
                         ->getOptionLabelFromRecordUsing(fn (ArmDealer $record): string => "{$record->name} - {$record->shop_name}")
+                        ->columnSpanFull(),
+
+                    Components\TextInput::make('arm_dealer_invoice_no')
+                        ->label('Arm Dealer Invoice#')
+                        ->required()
+                        ->maxLength(255)
                         ->columnSpanFull(),
 
                     Components\TextInput::make('fsl_diary_no')
@@ -81,6 +98,7 @@ class WeaponResource extends Resource
 
                     Components\TextInput::make('license_no')
                         ->label('License No')
+                        ->required()
                         ->maxLength(255)
                         ->columnSpanFull(),
 
@@ -89,6 +107,7 @@ class WeaponResource extends Resource
                         ->relationship('weaponType', 'name')
                         ->searchable()
                         ->preload()
+                        ->required()
                         ->createOptionForm([
                             Components\TextInput::make('name')
                                 ->label('Weapon Type')
@@ -106,6 +125,7 @@ class WeaponResource extends Resource
                         ->relationship('bore', 'name')
                         ->searchable()
                         ->preload()
+                        ->required()
                         ->createOptionForm([
                             Components\TextInput::make('name')
                                 ->label('Bore')
@@ -123,6 +143,7 @@ class WeaponResource extends Resource
                         ->relationship('make', 'name')
                         ->searchable()
                         ->preload()
+                        ->required()
                         ->createOptionForm([
                             Components\TextInput::make('name')
                                 ->label('Make')
@@ -140,6 +161,7 @@ class WeaponResource extends Resource
                         ->relationship('licenseIssuer', 'name')
                         ->searchable()
                         ->preload()
+                        ->required()
                         ->createOptionForm([
                             Components\TextInput::make('name')
                                 ->label('License Issuer')
@@ -196,6 +218,12 @@ class WeaponResource extends Resource
                     ->searchable()
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('arm_dealer_invoice_no')
+                    ->label('Arm Dealer Invoice#')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('fsl_diary_no')
                     ->label('FSL Diary No')
                     ->searchable()
@@ -232,6 +260,12 @@ class WeaponResource extends Resource
                     ->sortable()
                     ->toggleable(),
 
+                Tables\Columns\TextColumn::make('range.name')
+                    ->label('Range')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
                 Tables\Columns\IconColumn::make('attachments')
                     ->label('Has Attachments')
                     ->boolean()
@@ -252,6 +286,12 @@ class WeaponResource extends Resource
                 Tables\Filters\SelectFilter::make('arm_dealer_id')
                     ->label('Arm Dealer')
                     ->relationship('armDealer', 'name')
+                    ->searchable()
+                    ->preload(),
+
+                Tables\Filters\SelectFilter::make('range_id')
+                    ->label('Range')
+                    ->relationship('range', 'name')
                     ->searchable()
                     ->preload(),
 
@@ -281,6 +321,27 @@ class WeaponResource extends Resource
                 Actions\CreateAction::make()
                     ->visible(fn () => auth()->user()?->can('create weapons') ?? false),
             ]);
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+        
+        $user = auth()->user();
+        if ($user) {
+            // If user has range_id, only show weapons from their range
+            if ($user->range_id) {
+                // Ensure both are compared as integers to avoid type mismatch
+                $query->where('range_id', (int) $user->range_id);
+            } 
+            // If user has no range_id and is NOT admin, show nothing
+            elseif (!$user->hasRole('admin')) {
+                $query->whereRaw('1 = 0'); // This will return no results
+            }
+            // If user has no range_id and IS admin, show all weapons (no filter)
+        }
+        
+        return $query;
     }
 
     public static function getRelations(): array
@@ -320,13 +381,69 @@ class WeaponResource extends Resource
         return auth()->user()?->can('create weapons') ?? false;
     }
 
+    public static function canView($record): bool
+    {
+        $user = auth()->user();
+        if (!$user || !$user->can('view weapons')) {
+            return false;
+        }
+        
+        // If user has range_id, can only view weapons from their range
+        if ($user->range_id) {
+            // Compare as integers to avoid type mismatch
+            return (int) $record->range_id === (int) $user->range_id;
+        }
+        
+        // If user has no range_id and is NOT admin, cannot view anything
+        if (!$user->hasRole('admin')) {
+            return false;
+        }
+        
+        // Admin users can view all weapons
+        return true;
+    }
+
     public static function canEdit($record): bool
     {
-        return auth()->user()?->can('edit weapons') ?? false;
+        $user = auth()->user();
+        if (!$user || !$user->can('edit weapons')) {
+            return false;
+        }
+        
+        // If user has range_id, can only edit weapons from their range
+        if ($user->range_id) {
+            // Compare as integers to avoid type mismatch
+            return (int) $record->range_id === (int) $user->range_id;
+        }
+        
+        // If user has no range_id and is NOT admin, cannot edit anything
+        if (!$user->hasRole('admin')) {
+            return false;
+        }
+        
+        // Admin users can edit all weapons
+        return true;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->can('delete weapons') ?? false;
+        $user = auth()->user();
+        if (!$user || !$user->can('delete weapons')) {
+            return false;
+        }
+        
+        // If user has range_id, can only delete weapons from their range
+        if ($user->range_id) {
+            // Compare as integers to avoid type mismatch
+            return (int) $record->range_id === (int) $user->range_id;
+        }
+        
+        // If user has no range_id and is NOT admin, cannot delete anything
+        if (!$user->hasRole('admin')) {
+            return false;
+        }
+        
+        // Admin users can delete all weapons
+        return true;
     }
 }
