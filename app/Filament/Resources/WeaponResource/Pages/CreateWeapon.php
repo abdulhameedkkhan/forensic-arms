@@ -43,6 +43,7 @@ class CreateWeapon extends CreateRecord
             ->schema([
                 Components\TextInput::make('searchCnic')
                     ->label('CNIC')
+                    ->required()
                     ->placeholder('1234512345678')
                     ->maxLength(255)
                     ->live()
@@ -57,6 +58,7 @@ class CreateWeapon extends CreateRecord
 
                 Components\TextInput::make('searchWeaponNo')
                     ->label('Weapon Number')
+                    ->required()
                     ->maxLength(255)
                     ->live()
                     ->dehydrated(false)
@@ -66,6 +68,7 @@ class CreateWeapon extends CreateRecord
 
                 Components\TextInput::make('searchFslDiaryNo')
                     ->label('FSL Diary Number')
+                    ->required()
                     ->maxLength(255)
                     ->live()
                     ->dehydrated(false)
@@ -290,12 +293,18 @@ class CreateWeapon extends CreateRecord
 
     public function searchWeapon(): void
     {
-        // Validate search fields before proceeding
-        $searchCnic = $this->searchCnic;
-        $searchFslDiaryNo = $this->searchFslDiaryNo;
+        // Validate that all three fields are filled
+        if (empty($this->searchCnic) || empty($this->searchWeaponNo) || empty($this->searchFslDiaryNo)) {
+            Notification::make()
+                ->title('Missing Required Fields')
+                ->body('All three fields (CNIC, Weapon Number, and FSL Diary Number) are required.')
+                ->danger()
+                ->send();
+            return;
+        }
         
-        // Validate CNIC if provided
-        if (!empty($searchCnic) && !preg_match('/^\d{13}$/', $searchCnic)) {
+        // Validate CNIC format
+        if (!preg_match('/^\d{13}$/', $this->searchCnic)) {
             Notification::make()
                 ->title('Invalid CNIC')
                 ->body('CNIC must be exactly 13 digits')
@@ -304,8 +313,8 @@ class CreateWeapon extends CreateRecord
             return;
         }
         
-        // Validate FSL Diary Number if provided
-        if (!empty($searchFslDiaryNo) && !preg_match('/^\d+\/\d{2}$/', $searchFslDiaryNo)) {
+        // Validate FSL Diary Number format
+        if (!preg_match('/^\d+\/\d{2}$/', $this->searchFslDiaryNo)) {
             Notification::make()
                 ->title('Invalid FSL Diary Number')
                 ->body('FSL Diary Number format: Number/Year (e.g., 12345/25)')
@@ -332,14 +341,6 @@ class CreateWeapon extends CreateRecord
 
         if (!empty($this->searchFslDiaryNo)) {
             $query->where('fsl_diary_no', $this->searchFslDiaryNo);
-        }
-
-        if (empty($this->searchCnic) && empty($this->searchWeaponNo) && empty($this->searchFslDiaryNo)) {
-            Notification::make()
-                ->title('Please enter at least one search criteria')
-                ->warning()
-                ->send();
-            return;
         }
 
         $weapon = $query->first();
