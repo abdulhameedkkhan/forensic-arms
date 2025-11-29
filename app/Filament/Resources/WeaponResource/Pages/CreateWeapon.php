@@ -43,12 +43,16 @@ class CreateWeapon extends CreateRecord
             ->schema([
                 Components\TextInput::make('searchCnic')
                     ->label('CNIC')
-                    ->placeholder('420003566955')
+                    ->placeholder('1234512345678')
                     ->maxLength(255)
                     ->live()
                     ->dehydrated(false)
                     ->default(fn () => $this->searchCnic)
                     ->afterStateUpdated(fn ($state) => $this->searchCnic = $state)
+                    ->regex('/^\d{13}$/')
+                    ->validationMessages([
+                        'regex' => 'CNIC must be exactly 13 digits',
+                    ])
                     ->columnSpan(1),
 
                 Components\TextInput::make('searchWeaponNo')
@@ -67,6 +71,10 @@ class CreateWeapon extends CreateRecord
                     ->dehydrated(false)
                     ->default(fn () => $this->searchFslDiaryNo)
                     ->afterStateUpdated(fn ($state) => $this->searchFslDiaryNo = $state)
+                    ->regex('/^\d+\/\d{2}$/')
+                    ->validationMessages([
+                        'regex' => 'FSL Diary Number format: Number/Year (e.g., 12345/25)',
+                    ])
                     ->columnSpan(1),
             ])
             ->columns(3)
@@ -123,22 +131,26 @@ class CreateWeapon extends CreateRecord
 
                 Components\Select::make('arm_dealer_id')
                     ->label('Arm Dealer')
-                    ->relationship('armDealer', 'name', function ($query) {
-                        $user = auth()->user();
-                        if ($user && $user->range_id) {
-                            // Filter arm dealers by user's range
-                            return $query->where('range_id', (int) $user->range_id);
-                        } elseif ($user && !$user->hasRole('admin')) {
-                            // Non-admin users without range_id see nothing
-                            return $query->whereRaw('1 = 0');
+                    ->relationship(
+                        name: 'armDealer',
+                        titleAttribute: 'shop_name',
+                        modifyQueryUsing: function ($query) {
+                            $user = auth()->user();
+                            if ($user && $user->range_id) {
+                                // Filter arm dealers by user's range
+                                return $query->where('range_id', (int) $user->range_id);
+                            } elseif ($user && !$user->hasRole('admin')) {
+                                // Non-admin users without range_id see nothing
+                                return $query->whereRaw('1 = 0');
+                            }
+                            // Admin users see all arm dealers
+                            return $query;
                         }
-                        // Admin users see all arm dealers
-                        return $query;
-                    })
-                    ->searchable()
+                    )
+                    ->searchable(['shop_name', 'name'])
                     ->preload()
                     ->required()
-                    ->getOptionLabelFromRecordUsing(fn (\App\Models\ArmDealer $record): string => "{$record->name} - {$record->shop_name}")
+                    ->getOptionLabelFromRecordUsing(fn (\App\Models\ArmDealer $record): string => "{$record->shop_name} - {$record->name}")
                     ->columnSpanFull(),
 
                 Components\TextInput::make('arm_dealer_invoice_no')
@@ -278,6 +290,30 @@ class CreateWeapon extends CreateRecord
 
     public function searchWeapon(): void
     {
+        // Validate search fields before proceeding
+        $searchCnic = $this->searchCnic;
+        $searchFslDiaryNo = $this->searchFslDiaryNo;
+        
+        // Validate CNIC if provided
+        if (!empty($searchCnic) && !preg_match('/^\d{13}$/', $searchCnic)) {
+            Notification::make()
+                ->title('Invalid CNIC')
+                ->body('CNIC must be exactly 13 digits')
+                ->danger()
+                ->send();
+            return;
+        }
+        
+        // Validate FSL Diary Number if provided
+        if (!empty($searchFslDiaryNo) && !preg_match('/^\d+\/\d{2}$/', $searchFslDiaryNo)) {
+            Notification::make()
+                ->title('Invalid FSL Diary Number')
+                ->body('FSL Diary Number format: Number/Year (e.g., 12345/25)')
+                ->danger()
+                ->send();
+            return;
+        }
+        
         Log::info('Search initiated', [
             'searchCnic' => $this->searchCnic,
             'searchWeaponNo' => $this->searchWeaponNo,
@@ -285,25 +321,9 @@ class CreateWeapon extends CreateRecord
         ]);
         
         $query = Weapon::query();
-        
-        // Apply range filtering for search
-        $user = auth()->user();
-        if ($user) {
-            // If user has range_id, only search within their range
-            if ($user->range_id) {
-                // Ensure both are compared as integers to avoid type mismatch
-                $query->where('range_id', (int) $user->range_id);
-            } 
-            // If user has no range_id and is NOT admin, search nothing
-            elseif (!$user->hasRole('admin')) {
-                $query->whereRaw('1 = 0'); // This will return no results
-            }
-            // If user has no range_id and IS admin, search all weapons (no filter)
-        }
 
         if (!empty($this->searchCnic)) {
-            // Search in text column (comma-separated values)
-            $query->where('cnic', 'like', '%' . $this->searchCnic . '%');
+            $query->where('cnic', $this->searchCnic);
         }
 
         if (!empty($this->searchWeaponNo)) {
@@ -357,7 +377,7 @@ class CreateWeapon extends CreateRecord
     protected function prefillFormData(): void
     {
         $this->prefillData = array_filter([
-            'cnic' => !empty($this->searchCnic) ? $this->searchCnic : null,
+            'cnic' => $this->searchCnic,
             'weapon_no' => $this->searchWeaponNo,
             'fsl_diary_no' => $this->searchFslDiaryNo,
         ], fn ($value) => filled($value));
@@ -366,7 +386,6 @@ class CreateWeapon extends CreateRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         if ($this->showCreateForm && !empty($this->prefillData)) {
-            // Keep CNIC as string (normal text field)
             $data = array_merge($data, $this->prefillData);
         } else {
             $this->prefillData = [];
@@ -377,25 +396,6 @@ class CreateWeapon extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // Ensure CNIC is properly formatted as normal string
-        if (isset($data['cnic'])) {
-            if (is_array($data['cnic'])) {
-                // Convert array to comma-separated string
-                $data['cnic'] = implode(', ', array_filter($data['cnic'], fn($v) => !empty($v)));
-            } elseif (is_string($data['cnic'])) {
-                // Clean the string - remove extra quotes and trim
-                $data['cnic'] = trim($data['cnic'], '"\'');
-            }
-        }
-        
-        // Auto-set range_id from logged in user if user has a range
-        // Always set it if user has range_id, even if form data has NULL or empty value
-        $user = auth()->user();
-        if ($user && $user->range_id) {
-            // Ensure range_id is set as integer to match database type
-            $data['range_id'] = (int) $user->range_id;
-        }
-        
         return $data;
     }
 
