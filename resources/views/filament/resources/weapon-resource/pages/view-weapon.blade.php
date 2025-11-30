@@ -38,10 +38,6 @@
                             <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">FSL Diary Number</dt>
                             <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ $record->fsl_diary_no ?? '—' }}</dd>
                         </div>
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Arm Dealer</dt>
-                            <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ $armDealer?->name ?? 'Not linked' }}</dd>
-                        </div>
                     </dl>
                 </x-filament::section>
 

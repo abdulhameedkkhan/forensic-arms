@@ -43,11 +43,10 @@ class CreateWeapon extends CreateRecord
             ->schema([
                 Components\TextInput::make('searchCnic')
                     ->label('CNIC')
-                    ->required()
+                    ->required(fn () => !$this->showCreateForm) // Only required when search form is visible
                     ->placeholder('1234512345678')
                     ->maxLength(255)
                     ->live()
-                    ->dehydrated(false)
                     ->default(fn () => $this->searchCnic)
                     ->afterStateUpdated(fn ($state) => $this->searchCnic = $state)
                     ->regex('/^\d{13}$/')
@@ -58,20 +57,18 @@ class CreateWeapon extends CreateRecord
 
                 Components\TextInput::make('searchWeaponNo')
                     ->label('Weapon Number')
-                    ->required()
+                    ->required(fn () => !$this->showCreateForm) // Only required when search form is visible
                     ->maxLength(255)
                     ->live()
-                    ->dehydrated(false)
                     ->default(fn () => $this->searchWeaponNo)
                     ->afterStateUpdated(fn ($state) => $this->searchWeaponNo = $state)
                     ->columnSpan(1),
 
                 Components\TextInput::make('searchFslDiaryNo')
                     ->label('FSL Diary Number')
-                    ->required()
+                    ->required(fn () => !$this->showCreateForm) // Only required when search form is visible
                     ->maxLength(255)
                     ->live()
-                    ->dehydrated(false)
                     ->default(fn () => $this->searchFslDiaryNo)
                     ->afterStateUpdated(fn ($state) => $this->searchFslDiaryNo = $state)
                     ->regex('/^\d+\/\d{2}$/')
@@ -397,6 +394,17 @@ class CreateWeapon extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        // Ensure the search field data is included in the final form data
+        if (!empty($this->searchCnic) && empty($data['cnic'])) {
+            $data['cnic'] = $this->searchCnic;
+        }
+        if (!empty($this->searchWeaponNo) && empty($data['weapon_no'])) {
+            $data['weapon_no'] = $this->searchWeaponNo;
+        }
+        if (!empty($this->searchFslDiaryNo) && empty($data['fsl_diary_no'])) {
+            $data['fsl_diary_no'] = $this->searchFslDiaryNo;
+        }
+        
         return $data;
     }
 
