@@ -13,8 +13,8 @@ class ListWeapons extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()
-                ->visible(fn () => auth()->user()?->can('create weapons') ?? false),
+            // Actions\CreateAction::make()
+            //     ->visible(fn () => auth()->user()?->can('create weapons') ?? false),
         ];
     }
 }

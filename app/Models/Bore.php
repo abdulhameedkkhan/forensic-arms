@@ -12,4 +12,12 @@ class Bore extends Model
     protected $fillable = [
         'name',
     ];
+    
+    /**
+     * Scope a query to only include bores with specific columns.
+     */
+    public function scopeWithMinimalColumns($query)
+    {
+        return $query->select(['id', 'name']);
+    }
 }

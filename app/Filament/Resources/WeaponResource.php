@@ -57,12 +57,12 @@ class WeaponResource extends Resource
 
                     Components\Select::make('arm_dealer_id')
                         ->label('Arm Dealer')
-                        ->relationship('armDealer', 'shop_name')
+                        ->options(\App\Models\ArmDealer::pluck('shop_name', 'id'))
                         ->searchable(['shop_name', 'name'])
-                        ->preload()
                         ->required()
                         ->getOptionLabelFromRecordUsing(fn (ArmDealer $record): string => "{$record->shop_name} - {$record->name}")
-                        ->columnSpanFull(),
+                        ->columnSpanFull()
+                        ->live(), // Enable live updates
 
                     Components\TextInput::make('arm_dealer_invoice_no')
                         ->label('Arm Dealer Invoice#')
@@ -94,77 +94,37 @@ class WeaponResource extends Resource
 
                     Components\Select::make('weapon_type_id')
                         ->label('Weapon Type')
-                        ->relationship('weaponType', 'name')
+                        ->options(\App\Models\WeaponType::pluck('name', 'id'))
                         ->searchable()
-                        ->preload()
                         ->required()
-                        ->createOptionForm([
-                            Components\TextInput::make('name')
-                                ->label('Weapon Type')
-                                ->required()
-                                ->unique(WeaponType::class, 'name')
-                                ->maxLength(255),
-                        ])
-                        ->createOptionUsing(function (array $data): int {
-                            return WeaponType::create($data)->getKey();
-                        })
-                        ->columnSpanFull(),
+                        ->columnSpanFull()
+                        ->live(), // Enable live updates
 
-                    Components\Select::make('bore_id')
-                        ->label('Bore')
-                        ->relationship('bore', 'name')
-                        ->searchable()
-                        ->preload()
-                        ->required()
-                        ->createOptionForm([
-                            Components\TextInput::make('name')
-                                ->label('Bore')
-                                ->required()
-                                ->unique(Bore::class, 'name')
-                                ->maxLength(255),
-                        ])
-                        ->createOptionUsing(function (array $data): int {
-                            return Bore::create($data)->getKey();
-                        })
-                        ->columnSpanFull(),
+                Components\Select::make('bore_id')
+                    ->label('Bore')
+                    ->options(\App\Models\Bore::pluck('name', 'id'))
+                    ->searchable()
+                    ->required()
+                    ->columnSpanFull()
+                    ->live(), // Enable live updates
 
-                    Components\Select::make('make_id')
-                        ->label('Make')
-                        ->relationship('make', 'name')
-                        ->searchable()
-                        ->preload()
-                        ->required()
-                        ->createOptionForm([
-                            Components\TextInput::make('name')
-                                ->label('Make')
-                                ->required()
-                                ->unique(Make::class, 'name')
-                                ->maxLength(255),
-                        ])
-                        ->createOptionUsing(function (array $data): int {
-                            return Make::create($data)->getKey();
-                        })
-                        ->columnSpanFull(),
+                Components\Select::make('make_id')
+                    ->label('Make')
+                    ->options(\App\Models\Make::pluck('name', 'id'))
+                    ->searchable()
+                    ->required()
+                    ->columnSpanFull()
+                    ->live(), // Enable live updates
 
-                    Components\Select::make('license_issuer_id')
-                        ->label('License Issued by')
-                        ->relationship('licenseIssuer', 'name')
-                        ->searchable()
-                        ->preload()
-                        ->required()
-                        ->createOptionForm([
-                            Components\TextInput::make('name')
-                                ->label('License Issuer')
-                                ->required()
-                                ->unique(LicenseIssuer::class, 'name')
-                                ->maxLength(255),
-                        ])
-                        ->createOptionUsing(function (array $data): int {
-                            return LicenseIssuer::create($data)->getKey();
-                        })
-                        ->columnSpanFull(),
+                Components\Select::make('license_issuer_id')
+                    ->label('License Issued by')
+                    ->options(\App\Models\LicenseIssuer::pluck('name', 'id'))
+                    ->searchable()
+                    ->required()
+                    ->columnSpanFull()
+                    ->live(), // Enable live updates
 
-                    Components\FileUpload::make('attachments')
+                Components\FileUpload::make('attachments')
                         ->label('Attachments')
                         ->multiple()
                         ->directory('weapons/attachments')

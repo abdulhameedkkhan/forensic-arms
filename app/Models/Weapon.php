@@ -22,6 +22,7 @@ class Weapon extends Model
         'make_id',
         'license_issuer_id',
         'range_id',
+        'user_id', // Add user_id to fillable
         'attachments',
     ];
 
@@ -91,5 +92,13 @@ class Weapon extends Model
     public function range(): BelongsTo
     {
         return $this->belongsTo(Range::class, 'range_id');
+    }
+
+    /**
+     * Get the user who created the weapon record.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

@@ -45,4 +45,12 @@ class ArmDealer extends Model
     {
         return $this->belongsTo(Range::class, 'range_id');
     }
+    
+    /**
+     * Scope a query to only include arm dealers with specific columns.
+     */
+    public function scopeWithMinimalColumns($query)
+    {
+        return $query->select(['id', 'shop_name', 'name']);
+    }
 }

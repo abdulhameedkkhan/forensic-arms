@@ -4,19 +4,25 @@ namespace App\Filament\Resources\WeaponResource\Pages;
 
 use App\Filament\Resources\WeaponResource;
 use App\Models\Weapon;
+use App\Models\ArmDealer;
+use App\Models\WeaponType;
+use App\Models\Bore;
+use App\Models\Make;
+use App\Models\LicenseIssuer;
 use Filament\Actions;
 use Filament\Forms\Components;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Schemas\Components as SchemaComponents;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Auth; // Import Auth facade
 use Illuminate\Support\Facades\Log;
 
 class CreateWeapon extends CreateRecord
 {
     protected static string $resource = WeaponResource::class;
-    protected static bool $shouldCacheForm = false;
-
+    protected static bool $shouldCacheForm = true;
+    
     public bool $showCreateForm = false;
     public ?string $searchCnic = null;
     public ?string $searchWeaponNo = null;
@@ -131,27 +137,12 @@ class CreateWeapon extends CreateRecord
 
                 Components\Select::make('arm_dealer_id')
                     ->label('Arm Dealer')
-                    ->relationship(
-                        name: 'armDealer',
-                        titleAttribute: 'shop_name',
-                        modifyQueryUsing: function ($query) {
-                            $user = auth()->user();
-                            if ($user && $user->range_id) {
-                                // Filter arm dealers by user's range
-                                return $query->where('range_id', (int) $user->range_id);
-                            } elseif ($user && !$user->hasRole('admin')) {
-                                // Non-admin users without range_id see nothing
-                                return $query->whereRaw('1 = 0');
-                            }
-                            // Admin users see all arm dealers
-                            return $query;
-                        }
-                    )
+                    ->options(\App\Models\ArmDealer::pluck('shop_name', 'id'))
                     ->searchable(['shop_name', 'name'])
-                    ->preload()
                     ->required()
                     ->getOptionLabelFromRecordUsing(fn (\App\Models\ArmDealer $record): string => "{$record->shop_name} - {$record->name}")
-                    ->columnSpanFull(),
+                    ->columnSpanFull()
+                    ->live(), // Enable live updates
 
                 Components\TextInput::make('arm_dealer_invoice_no')
                     ->label('Arm Dealer Invoice#')
@@ -188,75 +179,35 @@ class CreateWeapon extends CreateRecord
 
                 Components\Select::make('weapon_type_id')
                     ->label('Weapon Type')
-                    ->relationship('weaponType', 'name')
+                    ->options(\App\Models\WeaponType::pluck('name', 'id'))
                     ->searchable()
-                    ->preload()
                     ->required()
-                    ->createOptionForm([
-                        Components\TextInput::make('name')
-                            ->label('Weapon Type')
-                            ->required()
-                            ->unique(\App\Models\WeaponType::class, 'name')
-                            ->maxLength(255),
-                    ])
-                    ->createOptionUsing(function (array $data): int {
-                        return \App\Models\WeaponType::create($data)->getKey();
-                    })
-                    ->columnSpanFull(),
+                    ->columnSpanFull()
+                    ->live(), // Enable live updates
 
                 Components\Select::make('bore_id')
                     ->label('Bore')
-                    ->relationship('bore', 'name')
+                    ->options(\App\Models\Bore::pluck('name', 'id'))
                     ->searchable()
-                    ->preload()
                     ->required()
-                    ->createOptionForm([
-                        Components\TextInput::make('name')
-                            ->label('Bore')
-                            ->required()
-                            ->unique(\App\Models\Bore::class, 'name')
-                            ->maxLength(255),
-                    ])
-                    ->createOptionUsing(function (array $data): int {
-                        return \App\Models\Bore::create($data)->getKey();
-                    })
-                    ->columnSpanFull(),
+                    ->columnSpanFull()
+                    ->live(), // Enable live updates
 
                 Components\Select::make('make_id')
                     ->label('Make')
-                    ->relationship('make', 'name')
+                    ->options(\App\Models\Make::pluck('name', 'id'))
                     ->searchable()
-                    ->preload()
                     ->required()
-                    ->createOptionForm([
-                        Components\TextInput::make('name')
-                            ->label('Make')
-                            ->required()
-                            ->unique(\App\Models\Make::class, 'name')
-                            ->maxLength(255),
-                    ])
-                    ->createOptionUsing(function (array $data): int {
-                        return \App\Models\Make::create($data)->getKey();
-                    })
-                    ->columnSpanFull(),
+                    ->columnSpanFull()
+                    ->live(), // Enable live updates
 
                 Components\Select::make('license_issuer_id')
                     ->label('License Issued by')
-                    ->relationship('licenseIssuer', 'name')
+                    ->options(\App\Models\LicenseIssuer::pluck('name', 'id'))
                     ->searchable()
-                    ->preload()
                     ->required()
-                    ->createOptionForm([
-                        Components\TextInput::make('name')
-                            ->label('License Issuer')
-                            ->required()
-                            ->unique(\App\Models\LicenseIssuer::class, 'name')
-                            ->maxLength(255),
-                    ])
-                    ->createOptionUsing(function (array $data): int {
-                        return \App\Models\LicenseIssuer::create($data)->getKey();
-                    })
-                    ->columnSpanFull(),
+                    ->columnSpanFull()
+                    ->live(), // Enable live updates
 
                 Components\FileUpload::make('attachments')
                     ->label('Attachments')
@@ -403,6 +354,15 @@ class CreateWeapon extends CreateRecord
         }
         if (!empty($this->searchFslDiaryNo) && empty($data['fsl_diary_no'])) {
             $data['fsl_diary_no'] = $this->searchFslDiaryNo;
+        }
+        
+        // Set the user_id to the currently authenticated user
+        $data['user_id'] = Auth::id();
+        
+        // Set the range_id from the user's range_id if available
+        $user = Auth::user();
+        if ($user && $user->range_id) {
+            $data['range_id'] = $user->range_id;
         }
         
         return $data;
