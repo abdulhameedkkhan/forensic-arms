@@ -144,7 +144,7 @@ class WeaponResource extends Resource
     {
         return [
             Actions\ButtonAction::make('create')->label('Create')->color('primary')->action('create'),
-            Actions\ButtonAction::make('createAnother')->label('Create & create another')->color('primary')->action('createAnother'),
+            // Actions\ButtonAction::make('createAnother')->label('Create & create another')->color('primary')->action('createAnother'),
             Actions\ButtonAction::make('cancel')->label('Cancel')->color('gray')->action('cancel'),
         ];
     }
