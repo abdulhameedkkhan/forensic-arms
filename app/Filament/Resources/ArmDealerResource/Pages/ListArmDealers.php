@@ -19,21 +19,22 @@ class ListArmDealers extends ListRecords
         ];
     }
 
-    protected function getTableQuery(): Builder
+    protected function getEloquentQuery(): Builder
     {
-        $query = parent::getTableQuery();
+        $query = parent::getEloquentQuery();
         $user = auth()->user();
-
-        if ($user && !$user->hasRole('admin')) {
+        
+        if ($user) {
             if ($user->range_id) {
                 // Range users see only their range's data
                 $query->where('range_id', (int) $user->range_id);
-            } else {
+            } elseif (!$user->hasRole('admin')) {
                 // Non-admin users without range_id see nothing
                 $query->whereRaw('1 = 0');
             }
+            // Admin users see all data (no filter applied)
         }
-
+        
         return $query;
     }
 }

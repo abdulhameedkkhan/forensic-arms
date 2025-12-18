@@ -17,10 +17,15 @@ class StatsOverview extends BaseWidget
         $user = auth()->user();
         
         // Helper function to get filtered query based on user's range_id
-        $getFilteredQuery = function ($modelClass) use ($user) {
+        // Models that have range_id: User, ArmDealer, Weapon
+        // Models that don't have range_id: Role, Permission
+        $modelsWithRangeId = [User::class, ArmDealer::class, Weapon::class];
+        
+        $getFilteredQuery = function ($modelClass) use ($user, $modelsWithRangeId) {
             $query = $modelClass::query();
             
-            if ($user) {
+            // Only apply range_id filter if the model has this column
+            if (in_array($modelClass, $modelsWithRangeId) && $user) {
                 if ($user->range_id) {
                     // Range users see only their range's data
                     return $query->where('range_id', (int) $user->range_id);
@@ -30,7 +35,7 @@ class StatsOverview extends BaseWidget
                 }
             }
             
-            // Admin users see all data
+            // Admin users see all data, or models without range_id show all
             return $query;
         };
 
@@ -73,13 +78,13 @@ class StatsOverview extends BaseWidget
                 ->description('System roles configured')
                 ->descriptionIcon('heroicon-m-shield-check')
                 ->color('warning')
-                ->chart($user && $user->hasRole('admin') ? $getTrendData(Role::class) : [0, 0, 0, 0, 0, 0, 0]),
+                ->chart($user && $user->hasRole('admin') ? [0, 0, 0, 0, 0, 0, 0] : [0, 0, 0, 0, 0, 0, 0]),
 
             Stat::make('Total Permissions', $user && $user->hasRole('admin') ? Permission::count() : 0)
                 ->description('Access rules available')
                 ->descriptionIcon('heroicon-m-key')
                 ->color('danger')
-                ->chart($user && $user->hasRole('admin') ? $getTrendData(Permission::class) : [0, 0, 0, 0, 0, 0, 0]),
+                ->chart($user && $user->hasRole('admin') ? [0, 0, 0, 0, 0, 0, 0] : [0, 0, 0, 0, 0, 0, 0]),
         ];
     }
 }
