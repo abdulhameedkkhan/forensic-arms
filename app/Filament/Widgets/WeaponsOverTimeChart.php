@@ -13,11 +13,6 @@ class WeaponsOverTimeChart extends ChartWidget
 
     protected ?string $description = 'Monthly trend of weapons added to the system';
 
-    public static function canView(): bool
-    {
-        return auth()->user()?->can('view weapons') ?? false;
-    }
-
     protected function getData(): array
     {
         try {

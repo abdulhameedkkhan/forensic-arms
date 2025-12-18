@@ -14,11 +14,6 @@ class WeaponsByRangeChart extends ChartWidget
 
     protected ?string $description = 'Daily distribution of weapons across different ranges for the current month';
 
-    public static function canView(): bool
-    {
-        return auth()->user()?->can('view weapons') ?? false;
-    }
-
     protected function getData(): array
     {
         try {
