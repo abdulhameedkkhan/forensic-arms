@@ -26,13 +26,13 @@ class ListArmDealers extends ListRecords
         
         if ($user) {
             if ($user->range_id) {
-                // Range users see only their range's data
+                // Users with range_id see only their range's data
                 $query->where('range_id', (int) $user->range_id);
             } elseif (!$user->hasRole('admin')) {
                 // Non-admin users without range_id see nothing
                 $query->whereRaw('1 = 0');
             }
-            // Admin users see all data (no filter applied)
+            // Admin users without range_id see all data (no filter applied)
         }
         
         return $query;

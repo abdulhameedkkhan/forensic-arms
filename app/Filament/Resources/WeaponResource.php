@@ -264,7 +264,23 @@ class WeaponResource extends Resource
             ->headerActions([
                 Actions\CreateAction::make()
                     ->visible(fn () => auth()->user()?->can('create weapons') ?? false),
-            ]);
+            ])
+            ->modifyQueryUsing(function (\Illuminate\Database\Eloquent\Builder $query) {
+                $user = auth()->user();
+                
+                if ($user) {
+                    if ($user->range_id) {
+                        // Users with range_id see only their range's data
+                        return $query->where('range_id', (int) $user->range_id);
+                    } elseif (!$user->hasRole('admin')) {
+                        // Non-admin users without range_id see nothing
+                        return $query->whereRaw('1 = 0');
+                    }
+                    // Admin users without range_id see all data (no filter applied)
+                }
+                
+                return $query;
+            });
     }
 
     public static function getRelations(): array

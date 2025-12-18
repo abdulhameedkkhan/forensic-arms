@@ -40,17 +40,28 @@ class StatsOverview extends BaseWidget
         };
 
         // Helper function to get last 7 days trend data
-        $getTrendData = function ($modelClass, $dateColumn = 'created_at') use ($getFilteredQuery) {
+        // Only works for models with range_id (User, ArmDealer, Weapon)
+        $getTrendData = function ($modelClass, $dateColumn = 'created_at') use ($getFilteredQuery, $modelsWithRangeId) {
+            // Safety check: Don't process Role or Permission models
+            if (!in_array($modelClass, $modelsWithRangeId)) {
+                return [0, 0, 0, 0, 0, 0, 0];
+            }
+            
             $trend = [];
             for ($i = 6; $i >= 0; $i--) {
                 $date = now()->subDays($i)->startOfDay();
                 $nextDate = $date->copy()->endOfDay();
                 
-                $count = (clone $getFilteredQuery($modelClass))
-                    ->whereBetween($dateColumn, [$date, $nextDate])
-                    ->count();
-                
-                $trend[] = $count;
+                try {
+                    $count = (clone $getFilteredQuery($modelClass))
+                        ->whereBetween($dateColumn, [$date, $nextDate])
+                        ->count();
+                    
+                    $trend[] = $count;
+                } catch (\Exception $e) {
+                    // If any error occurs, return zero for that day
+                    $trend[] = 0;
+                }
             }
             return $trend;
         };
