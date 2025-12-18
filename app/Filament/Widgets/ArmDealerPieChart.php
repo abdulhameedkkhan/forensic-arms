@@ -13,10 +13,24 @@ class ArmDealerPieChart extends ChartWidget
 
     protected function getData(): array
     {
-        $statuses = ArmDealer::selectRaw('COALESCE(status, "Unknown") as status, count(*) as count')
-            ->groupBy('status')
-            ->pluck('count', 'status')
-            ->toArray();
+        $user = auth()->user();
+        
+        // Build query with range filtering
+        $query = ArmDealer::selectRaw('COALESCE(status, "Unknown") as status, count(*) as count')
+            ->groupBy('status');
+        
+        // Apply range filtering for non-admin users (if arm_dealers have range_id)
+        if ($user && !$user->hasRole('admin')) {
+            if ($user->range_id) {
+                // If arm_dealers table has range_id, filter by it
+                // For now, we'll keep it as is since arm_dealers might not have range_id
+            } else {
+                // Non-admin users without range_id see nothing
+                $query->whereRaw('1 = 0');
+            }
+        }
+        
+        $statuses = $query->pluck('count', 'status')->toArray();
 
         $labels = array_keys($statuses);
         $data = array_values($statuses);

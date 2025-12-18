@@ -34,36 +34,52 @@ class StatsOverview extends BaseWidget
             return $query;
         };
 
+        // Helper function to get last 7 days trend data
+        $getTrendData = function ($modelClass, $dateColumn = 'created_at') use ($getFilteredQuery) {
+            $trend = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $date = now()->subDays($i)->startOfDay();
+                $nextDate = $date->copy()->endOfDay();
+                
+                $count = (clone $getFilteredQuery($modelClass))
+                    ->whereBetween($dateColumn, [$date, $nextDate])
+                    ->count();
+                
+                $trend[] = $count;
+            }
+            return $trend;
+        };
+
         return [
             Stat::make('Total Users', $getFilteredQuery(User::class)->count())
                 ->description('Active users in the system')
                 ->descriptionIcon('heroicon-m-users')
                 ->color('success')
-                ->chart([7, 3, 4, 5, 6, 3, 5]),
+                ->chart($getTrendData(User::class)),
 
             Stat::make('Total Arm Dealers', $getFilteredQuery(ArmDealer::class)->count())
                 ->description('Registered arm dealers')
                 ->descriptionIcon('heroicon-m-building-storefront')
                 ->color('primary')
-                ->chart([1, 2, 3, 4, 5, 6, 7]),
+                ->chart($getTrendData(ArmDealer::class)),
 
             Stat::make('Total Weapons', $getFilteredQuery(Weapon::class)->count())
                 ->description('Weapons tracked in BSLW')
                 ->descriptionIcon('heroicon-m-rocket-launch')
                 ->color('info')
-                ->chart([3, 4, 6, 5, 6, 8, 9]),
+                ->chart($getTrendData(Weapon::class)),
 
             Stat::make('Total Roles', $user && $user->hasRole('admin') ? Role::count() : 0)
                 ->description('System roles configured')
                 ->descriptionIcon('heroicon-m-shield-check')
                 ->color('warning')
-                ->chart([2, 3, 2, 3, 2, 3, 2]),
+                ->chart($user && $user->hasRole('admin') ? $getTrendData(Role::class) : [0, 0, 0, 0, 0, 0, 0]),
 
             Stat::make('Total Permissions', $user && $user->hasRole('admin') ? Permission::count() : 0)
                 ->description('Access rules available')
                 ->descriptionIcon('heroicon-m-key')
                 ->color('danger')
-                ->chart([5, 6, 5, 7, 5, 6, 5]),
+                ->chart($user && $user->hasRole('admin') ? $getTrendData(Permission::class) : [0, 0, 0, 0, 0, 0, 0]),
         ];
     }
 }

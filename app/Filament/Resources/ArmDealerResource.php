@@ -239,6 +239,13 @@ class ArmDealerResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('range_id')
+                    ->label('Range')
+                    ->relationship('range', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->visible(fn () => auth()->user()?->hasRole('admin') ?? false),
+
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
                         'active' => 'Active',

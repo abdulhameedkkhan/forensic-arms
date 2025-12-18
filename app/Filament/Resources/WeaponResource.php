@@ -168,6 +168,13 @@ class WeaponResource extends Resource
                     ->searchable()
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('range.name')
+                    ->label('Range')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable()
+                    ->visible(fn () => auth()->user()?->hasRole('admin') ?? false),
+
                 Tables\Columns\TextColumn::make('arm_dealer_invoice_no')
                     ->label('Arm Dealer Invoice#')
                     ->searchable()
@@ -227,6 +234,13 @@ class WeaponResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('range_id')
+                    ->label('Range')
+                    ->relationship('range', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->visible(fn () => auth()->user()?->hasRole('admin') ?? false),
+
                 Tables\Filters\SelectFilter::make('arm_dealer_id')
                     ->label('Arm Dealer')
                     ->relationship('armDealer', 'name')
