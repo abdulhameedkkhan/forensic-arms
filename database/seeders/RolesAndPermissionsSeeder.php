@@ -51,6 +51,30 @@ class RolesAndPermissionsSeeder extends Seeder
             'create weapons',
             'edit weapons',
             'delete weapons',
+            
+            // Weapon Type Management
+            'view weapon types',
+            'create weapon types',
+            'edit weapon types',
+            'delete weapon types',
+            
+            // Bore Management
+            'view bores',
+            'create bores',
+            'edit bores',
+            'delete bores',
+            
+            // Make Management
+            'view makes',
+            'create makes',
+            'edit makes',
+            'delete makes',
+            
+            // License Issuer Management
+            'view license issuers',
+            'create license issuers',
+            'edit license issuers',
+            'delete license issuers',
         ];
 
         foreach ($permissions as $permissionName) {
