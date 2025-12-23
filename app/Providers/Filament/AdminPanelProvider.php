@@ -27,7 +27,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->brandName('BSLW Forensic')
+            ->brandName('STRATA Forensic')
             ->favicon(asset('images/gun-icon.svg'))
             ->colors([
                 'primary' => Color::Amber,

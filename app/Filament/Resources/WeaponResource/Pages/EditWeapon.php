@@ -50,15 +50,21 @@ class EditWeapon extends EditRecord
                     Components\TextInput::make('fsl_diary_no')
                         ->label('FSL Diary Number')
                         ->required()
-                        ->unique(ignoreRecord: true)
+                        ->unique(ignoreRecord: true, modifyRuleUsing: function ($rule, $get) {
+                            $rangeId = $get('range_id') ?? $this->record?->range_id ?? auth()->user()?->range_id;
+                            if ($rangeId) {
+                                return $rule->where('range_id', $rangeId);
+                            }
+                            return $rule;
+                        })
                         ->maxLength(255)
                         ->placeholder('12345/25')
-                        ->helperText('Format: Number/Year (e.g., 12345/25). This field must be unique.')
+                        ->helperText('Format: Number/Year (e.g., 12345/25). This field must be unique per range_id.')
                         ->regex('/^\d+\/\d{2}$/')
                         ->live(onBlur: true)
                         ->validationMessages([
                             'regex' => 'FSL Diary Number format: Number/Year hona chahiye (masalan: 12345/25)',
-                            'unique' => 'Ye FSL Diary Number (1234/25) pehle se maujood hai! Kripya koi doosra unique number dalein.',
+                            'unique' => 'Ye FSL Diary Number is range_id me pehle se maujood hai! Kripya koi doosra unique number dalein.',
                             'required' => 'FSL Diary Number zaroori hai.',
                         ])
                         ->columnSpanFull(),
